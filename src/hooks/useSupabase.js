@@ -96,15 +96,38 @@ export function useBookingsByOfficeDate(officeId, date) {
 
     useEffect(() => {
         load();
+
         const channel = supabase
-            .channel(`bookings:${officeId}:${date}`)
+            .channel(`bookings-realtime-${officeId}-${date}`)
             .on('postgres_changes', {
-                event: '*', schema: 'public', table: 'bookings',
-                filter: `date=eq.${date}`,
-            }, () => { load(); })
+                event: 'INSERT', schema: 'public', table: 'bookings',
+                filter: `date=eq.${date}`
+            }, async (payload) => {
+                // Fetch just the nested info for the new single booking
+                const { data: newBk, error } = await supabase
+                    .from('bookings')
+                    .select('*, profiles(id, name, email, avatar, team_id), assets(id, name, type, office_id, zones(label))')
+                    .eq('id', payload.new.id)
+                    .single();
+
+                if (!error && newBk.assets?.office_id === officeId) {
+                    setData(prev => [...(prev ?? []), newBk]);
+                }
+            })
+            .on('postgres_changes', {
+                event: 'DELETE', schema: 'public', table: 'bookings',
+                filter: `date=eq.${date}`
+            }, (payload) => {
+                setData(prev => (prev ?? []).filter(b => b.id !== payload.old.id));
+            })
+            .on('postgres_changes', {
+                event: 'UPDATE', schema: 'public', table: 'bookings',
+                filter: `date=eq.${date}`
+            }, () => load()) // For updates (check-ins), just re-fetch for simplicity
             .subscribe();
+
         return () => { supabase.removeChannel(channel); };
-    }, [load]); // eslint-disable-line
+    }, [load, officeId, date]);
 
     return { data, loading, error, refetch: load };
 }

@@ -61,6 +61,17 @@ export default function OfficeMap() {
     const [booking, setBooking] = useState(false);
     const [cancelling, setCancelling] = useState(false);
 
+    // Track last updated asset for pulse animation
+    const [lastUpdatedId, setLastUpdatedId] = useState(null);
+    useEffect(() => {
+        if (bookings?.length > 0) {
+            const last = bookings[bookings.length - 1];
+            setLastUpdatedId(last.asset_id);
+            const timer = setTimeout(() => setLastUpdatedId(null), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [bookings?.length]);
+
     const loading = offLoading || aLoad || bLoad || zLoad;
 
     // Build booking map
@@ -116,10 +127,40 @@ export default function OfficeMap() {
 
     return (
         <div>
+            <style>{`
+                @keyframes pulse-highlight {
+                    0% { filter: drop-shadow(0 0 0px var(--accent)); stroke-width: 1; }
+                    50% { filter: drop-shadow(0 0 8px var(--accent)); stroke-width: 3; }
+                    100% { filter: drop-shadow(0 0 0px var(--accent)); stroke-width: 1; }
+                }
+                .pulse-active {
+                    animation: pulse-highlight 1s ease-in-out 2;
+                }
+                @keyframes heartbeat {
+                    0% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.2); opacity: 0.7; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .live-dot {
+                    width: 8px; height: 8px; background: #10b981; border-radius: 50%;
+                    display: inline-block; margin-right: 6px;
+                    animation: heartbeat 2s infinite ease-in-out;
+                }
+            `}</style>
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
                 <div>
-                    <h2 style={{ fontSize: 'clamp(20px, 5vw, 26px)' }}>🗺️ Mapa de Oficina</h2>
-                    <p style={{ textTransform: 'capitalize' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <h2 style={{ fontSize: 'clamp(20px, 5vw, 26px)', margin: 0 }}>🗺️ Mapa de Oficina</h2>
+                        <div style={{
+                            background: 'rgba(16,185,129,0.1)', color: '#10b981',
+                            padding: '4px 10px', borderRadius: 20, fontSize: 11,
+                            fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px',
+                            display: 'flex', alignItems: 'center', border: '1px solid rgba(16,185,129,0.2)'
+                        }}>
+                            <span className="live-dot" /> En Vivo
+                        </div>
+                    </div>
+                    <p style={{ textTransform: 'capitalize', marginTop: 4 }}>
                         {isToday ? 'Hoy · ' : ''}
                         {selectedDate.toLocaleDateString('es-MX', FMT_FULL)}
                     </p>
@@ -226,7 +267,7 @@ export default function OfficeMap() {
                             {rooms.map(r => {
                                 const isBooked = !!bookingMap[r.id];
                                 return (
-                                    <g key={r.id}>
+                                    <g key={r.id} className={lastUpdatedId === r.id ? 'pulse-active' : ''}>
                                         <rect x={r.coord_x} y={r.coord_y} width={ROOM_W} height={ROOM_H}
                                             className={`room-rect ${isBooked ? 'reserved' : 'free'}`}
                                             onClick={() => {
@@ -254,7 +295,7 @@ export default function OfficeMap() {
                                 const isMine = bk?.user_id === user?.id;
                                 const status = bk ? 'reserved' : 'free';
                                 return (
-                                    <g key={desk.id}
+                                    <g key={desk.id} className={lastUpdatedId === desk.id ? 'pulse-active' : ''}
                                         onMouseEnter={(e) => {
                                             const svg = e.currentTarget.closest('svg');
                                             const rect = svg.getBoundingClientRect();
