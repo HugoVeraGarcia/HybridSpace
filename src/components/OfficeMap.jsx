@@ -51,8 +51,11 @@ export default function OfficeMap() {
     const isToday = selectedDateISO === toISO(workingDays[0]);
 
     // Data for selected office + date
-    const { data: assets, loading: aLoad, refetch: refetchAssets } = useOfficeAssets(selectedOfficeId);
-    const { data: bookings, loading: bLoad, refetch: refetchBookings } = useBookingsByOfficeDate(selectedOfficeId, selectedDateISO);
+    const { data: assets, loading: aLoad } = useOfficeAssets(selectedOfficeId);
+    const {
+        data: bookings, loading: bLoad,
+        lastChangeAssetId
+    } = useBookingsByOfficeDate(selectedOfficeId, selectedDateISO);
     const { data: zones, loading: zLoad } = useOfficeZones(selectedOfficeId);
 
     const [tooltip, setTooltip] = useState(null);
@@ -61,16 +64,8 @@ export default function OfficeMap() {
     const [booking, setBooking] = useState(false);
     const [cancelling, setCancelling] = useState(false);
 
-    // Track last updated asset for pulse animation
-    const [lastUpdatedId, setLastUpdatedId] = useState(null);
-    useEffect(() => {
-        if (bookings?.length > 0) {
-            const last = bookings[bookings.length - 1];
-            setLastUpdatedId(last.asset_id);
-            const timer = setTimeout(() => setLastUpdatedId(null), 2000);
-            return () => clearTimeout(timer);
-        }
-    }, [bookings?.length]);
+    // Use the exact ID from the real-time hook for pulse animation
+    const lastUpdatedId = lastChangeAssetId;
 
     const loading = offLoading || aLoad || bLoad || zLoad;
 
@@ -105,8 +100,7 @@ export default function OfficeMap() {
         if (!error) {
             setConfirmed(modal.desk.name);
             setModal(null);
-            refetchAssets();
-            refetchBookings();
+            // No manual refetch needed - Realtime handles it without flickering
             setTimeout(() => setConfirmed(null), 3000);
         } else {
             setModal({ type: 'error', message: error.message });
@@ -119,7 +113,7 @@ export default function OfficeMap() {
         setCancelling(false);
         if (!error) {
             setModal(null);
-            refetchBookings();
+            // Realtime will remove the booking from state automatically
         } else {
             setModal({ type: 'error', message: 'No se pudo cancelar: ' + error.message });
         }

@@ -81,6 +81,7 @@ export function useBookingsByOfficeDate(officeId, date) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [lastChangeAssetId, setLastChangeAssetId] = useState(null);
 
     const load = useCallback(async () => {
         if (!officeId || officeId === 'none' || !date) { setData([]); setLoading(false); return; }
@@ -112,13 +113,24 @@ export function useBookingsByOfficeDate(officeId, date) {
 
                 if (!error && newBk.assets?.office_id === officeId) {
                     setData(prev => [...(prev ?? []), newBk]);
+                    setLastChangeAssetId(newBk.asset_id);
+                    setTimeout(() => setLastChangeAssetId(null), 2000);
                 }
             })
             .on('postgres_changes', {
                 event: 'DELETE', schema: 'public', table: 'bookings',
                 filter: `date=eq.${date}`
             }, (payload) => {
-                setData(prev => (prev ?? []).filter(b => b.id !== payload.old.id));
+                // Determine which booking was deleted to trigger the pulse
+                const deletedBookingId = payload.old.id;
+                setData(prev => {
+                    const deletedBk = (prev ?? []).find(b => b.id === deletedBookingId);
+                    if (deletedBk) {
+                        setLastChangeAssetId(deletedBk.asset_id);
+                        setTimeout(() => setLastChangeAssetId(null), 2000);
+                    }
+                    return (prev ?? []).filter(b => b.id !== deletedBookingId);
+                });
             })
             .on('postgres_changes', {
                 event: 'UPDATE', schema: 'public', table: 'bookings',
@@ -129,7 +141,7 @@ export function useBookingsByOfficeDate(officeId, date) {
         return () => { supabase.removeChannel(channel); };
     }, [load, officeId, date]);
 
-    return { data, loading, error, refetch: load };
+    return { data, loading, error, refetch: load, lastChangeAssetId };
 }
 
 // keep old name as alias for QR/TeamView
