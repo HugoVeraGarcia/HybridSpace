@@ -37,22 +37,22 @@ export default function SaasDashboard() {
                         Portal Superadmin
                     </span>
                 </div>
-                <h2>Control Global de HybridSpace</h2>
+                <h2 style={{ fontSize: 'clamp(20px, 5vw, 26px)' }}>Control Global de HybridSpace</h2>
                 <p>Monitoreo de infraestructura, clientes y métricas de plataforma</p>
             </div>
 
             {/* Global Stats */}
-            <div className="grid-3 mb-8" style={{ gap: 24 }}>
+            <div className="grid-3 mb-8">
                 {[
                     { label: 'Empresas Registradas', value: stats?.totalCompanies, icon: <Building2 />, color: 'var(--info)' },
                     { label: 'Usuarios Totales', value: stats?.totalUsers, icon: <Users />, color: 'var(--accent)' },
                     { label: 'Reservas (30d)', value: stats?.monthlyBookings, icon: <Calendar />, color: 'var(--success)' },
                 ].map(s => (
-                    <div key={s.label} className="stat-card" style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <div key={s.label} className="stat-card" style={{ padding: 24, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 20 }}>
                         <div style={{
                             width: 50, height: 50, borderRadius: 12, background: 'rgba(255,255,255,0.03)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: s.color, border: '1px solid rgba(255,255,255,0.05)'
+                            color: s.color, border: '1px solid rgba(255,255,255,0.05)', flexShrink: 0
                         }}>
                             {s.icon}
                         </div>
@@ -66,7 +66,7 @@ export default function SaasDashboard() {
 
             {/* Companies Table */}
             <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.01)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.01)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                     <h3 style={{ margin: 0, fontSize: 16 }}>Listado de Clientes</h3>
                     <div style={{ display: 'flex', gap: 8 }}>
                         <div style={{ background: 'var(--success)', width: 8, height: 8, borderRadius: '50%' }} />

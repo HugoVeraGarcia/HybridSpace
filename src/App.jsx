@@ -12,6 +12,7 @@ import CapacityAdmin from './components/CapacityAdmin';
 import ZonesAdmin from './components/ZonesAdmin';
 import SaasDashboard from './components/SaasDashboard';
 import SaasRoute from './components/SaasRoute';
+import Header from './components/Header';
 import LoginPage from './pages/LoginPage';
 import OfficeAdmin from './pages/OfficeAdmin';
 import OfficeEditor from './pages/OfficeEditor';
@@ -25,9 +26,16 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 
 function AppShell() {
   const [mode, setMode] = useState('employee');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="app-shell">
-      <Sidebar mode={mode} setMode={setMode} />
+      <Header onOpenSidebar={() => setSidebarOpen(true)} />
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+      <Sidebar mode={mode} setMode={setMode} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="main-content">
         <Routes>
           {/* Employee */}

@@ -116,9 +116,9 @@ export default function OfficeMap() {
 
     return (
         <div>
-            <div className="page-header">
+            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
                 <div>
-                    <h2>🗺️ Mapa de Oficina</h2>
+                    <h2 style={{ fontSize: 'clamp(20px, 5vw, 26px)' }}>🗺️ Mapa de Oficina</h2>
                     <p style={{ textTransform: 'capitalize' }}>
                         {isToday ? 'Hoy · ' : ''}
                         {selectedDate.toLocaleDateString('es-MX', FMT_FULL)}
@@ -126,7 +126,7 @@ export default function OfficeMap() {
                 </div>
 
                 {/* Office selector */}
-                <div style={{ position: 'relative', minWidth: 200 }}>
+                <div style={{ position: 'relative', minWidth: 200, width: 'max-content' }}>
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: 8,
                         padding: '8px 14px', background: 'var(--accent)',
@@ -152,13 +152,13 @@ export default function OfficeMap() {
                                 <option disabled style={{ color: '#000' }}>Sin oficinas</option>
                             )}
                         </select>
-                        <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                        <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.7)', flexShrink: 0 }} />
                     </div>
                 </div>
             </div>
 
             {/* Date pill strip */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
                 {workingDays.map((d, i) => {
                     const iso = toISO(d);
                     const active = iso === selectedDateISO;
@@ -171,6 +171,7 @@ export default function OfficeMap() {
                                 background: active ? 'var(--accent)' : 'var(--bg-card)',
                                 color: active ? '#fff' : 'var(--text-secondary)',
                                 cursor: 'pointer', transition: 'all 0.15s', textTransform: 'capitalize',
+                                whiteSpace: 'nowrap'
                             }}>
                             {label}
                         </button>
@@ -201,7 +202,7 @@ export default function OfficeMap() {
             ) : (
                 <>
                     <div className="map-wrapper" style={{ position: 'relative' }}>
-                        <svg viewBox={viewBox} className="map-svg" style={{ minHeight: 360 }}>
+                        <svg viewBox={viewBox} className="map-svg" style={{ minHeight: 450 }}>
                             <defs>
                                 <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
                                     <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />

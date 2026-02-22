@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
     Map, Users, QrCode, BarChart2,
-    Settings, Layers, LogOut, Zap, Building2, Building, Globe,
+    Settings, Layers, LogOut, Zap, Building2, Building, Globe, X
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
@@ -27,7 +27,7 @@ const NAV = {
 
 const AVATAR_COLORS = ['#6c63ff', '#f59e0b', '#10b981', '#ef4444', '#38bdf8'];
 
-export default function Sidebar({ mode, setMode }) {
+export default function Sidebar({ mode, setMode, open, onClose }) {
     const navigate = useNavigate();
     const { profile, signOut } = useAuth();
 
@@ -43,15 +43,28 @@ export default function Sidebar({ mode, setMode }) {
         if (m === 'employee') navigate('/map');
         else if (m === 'admin') navigate('/admin/analytics');
         else if (m === 'saas') navigate('/saas/dashboard');
+        onClose?.();
     };
 
     const handleSignOut = async () => {
         await signOut();
+        onClose?.();
         navigate('/login');
     };
 
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${open ? 'open' : ''}`}>
+            {/* Mobile close button */}
+            <button
+                className="show-mobile"
+                onClick={onClose}
+                style={{
+                    position: 'absolute', top: 16, right: 16, border: 'none',
+                    background: 'none', color: 'var(--text-muted)', cursor: 'pointer'
+                }}
+            >
+                <X size={20} />
+            </button>
             {/* Logo + Company */}
             <div className="sidebar-logo" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6, padding: '20px 20px 16px' }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.8px', textTransform: 'uppercase', fontWeight: 600 }}>
@@ -93,7 +106,12 @@ export default function Sidebar({ mode, setMode }) {
                     {mode === 'saas' ? 'Plataforma SaaS' : (isAdmin && mode === 'admin') ? 'Gestión' : 'Mi Espacio'}
                 </div>
                 {NAV[mode].map(({ to, icon, label }) => (
-                    <NavLink key={to} to={to} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <NavLink
+                        key={to}
+                        to={to}
+                        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                        onClick={() => onClose?.()}
+                    >
                         {icon}
                         <span>{label}</span>
                     </NavLink>
