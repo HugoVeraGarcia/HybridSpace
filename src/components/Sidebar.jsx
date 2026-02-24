@@ -1,10 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
     Map, Users, QrCode, BarChart2,
-    Settings, Layers, LogOut, Zap, Building2, Building, Globe, X
+    Settings, Layers, LogOut, Zap, Building2, Building, Globe, X, PlusCircle
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
+import { useCompanies } from '../hooks/useSupabase';
 
 const NAV = {
     employee: [
@@ -22,6 +23,7 @@ const NAV = {
     saas: [
         { to: '/saas/dashboard', icon: <Globe size={18} />, label: 'Dashboard SaaS' },
         { to: '/saas/companies', icon: <Building size={18} />, label: 'Empresas' },
+        { to: '/register', icon: <PlusCircle size={18} />, label: 'Registrar Empresa' },
     ]
 };
 
@@ -29,7 +31,8 @@ const AVATAR_COLORS = ['#6c63ff', '#f59e0b', '#10b981', '#ef4444', '#38bdf8'];
 
 export default function Sidebar({ mode, setMode, open, onClose }) {
     const navigate = useNavigate();
-    const { profile, signOut } = useAuth();
+    const { profile, signOut, switchCompany, impersonatedCompanyId } = useAuth();
+    const { data: allCompanies } = useCompanies();
 
     const avatarColor = AVATAR_COLORS[
         (profile?.name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length
@@ -67,12 +70,46 @@ export default function Sidebar({ mode, setMode, open, onClose }) {
             </button>
             {/* Logo + Company */}
             <div className="sidebar-logo" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6, padding: '20px 20px 16px' }}>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.8px', textTransform: 'uppercase', fontWeight: 600 }}>
-                    empresa
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.8px', textTransform: 'uppercase', fontWeight: 600, flex: 1 }}>
+                        empresa
+                    </div>
+                    {isSuperAdmin && impersonatedCompanyId && (
+                        <div style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase' }}>
+                            Modo Soporte
+                        </div>
+                    )}
                 </div>
-                <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.4px', lineHeight: 1.2, color: 'var(--text-primary)' }}>
-                    {profile?.companies?.name ?? 'Mi Empresa'}
-                </div>
+
+                {isSuperAdmin && allCompanies ? (
+                    <select
+                        value={impersonatedCompanyId || profile?.company_id || ''}
+                        onChange={(e) => switchCompany(e.target.value)}
+                        style={{
+                            width: '100%',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 6,
+                            padding: '6px 8px',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: 'var(--text-primary)',
+                            outline: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {allCompanies.map(c => (
+                            <option key={c.id} value={c.id} style={{ background: '#1a1f2e', color: '#fff' }}>
+                                {c.name}
+                            </option>
+                        ))}
+                    </select>
+                ) : (
+                    <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.4px', lineHeight: 1.2, color: 'var(--text-primary)' }}>
+                        {profile?.companies?.name ?? 'Mi Empresa'}
+                    </div>
+                )}
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                     <div style={{
                         width: 20, height: 20, borderRadius: 5, flexShrink: 0,

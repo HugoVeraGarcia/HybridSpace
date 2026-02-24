@@ -1,19 +1,28 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { setOverrideCompanyId } from '../hooks/useSupabase';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [session, setSession] = useState(undefined); // undefined = loading
     const [profile, setProfile] = useState(null);
+    const [profileLoading, setProfileLoading] = useState(true);
+    const [impersonatedCompanyId, setImpersonatedCompanyId] = useState(null);
 
     // Fetch profile row from public.profiles for the given auth user.
     // Falls back to auth metadata if the DB row isn't readable yet (RLS timing).
     const fetchProfile = async (userId, authUser = null) => {
-        if (!userId) { setProfile(null); return; }
+        if (!userId) {
+            setProfile(null);
+            setProfileLoading(false);
+            return;
+        }
+
+        setProfileLoading(true);
         const { data } = await supabase
             .from('profiles')
-            .select('*, teams(name, color), companies(name)')
+            .select('*, teams(name, color), companies(*)')
             .eq('id', userId)
             .maybeSingle();
 
@@ -31,8 +40,10 @@ export function AuthProvider({ children }) {
                 role: meta.role ?? 'employee',
                 team_id: null,
                 teams: null,
+                companies: null,
             });
         }
+        setProfileLoading(false);
     };
 
     useEffect(() => {
@@ -46,6 +57,11 @@ export function AuthProvider({ children }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
             setSession(s ?? null);
             fetchProfile(s?.user?.id, s?.user);
+            // Reset impersonation on logout
+            if (!s) {
+                setImpersonatedCompanyId(null);
+                setOverrideCompanyId(null);
+            }
         });
 
         return () => subscription.unsubscribe();
@@ -61,11 +77,26 @@ export function AuthProvider({ children }) {
             options: { data: { name } },
         });
 
-    const signInWithMagicLink = (email) =>
-        supabase.auth.signInWithOtp({
+    const signInWithMagicLink = async (email) => {
+        // First check if the user exists in our profiles table
+        const { data, error: searchError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
+
+        if (searchError) return { error: searchError };
+        if (!data) {
+            return {
+                error: { message: 'No hay ninguna cuenta asociada a este correo. Si eres nuevo, pide una invitación a tu administrador.' }
+            };
+        }
+
+        return supabase.auth.signInWithOtp({
             email,
             options: { emailRedirectTo: window.location.origin },
         });
+    };
 
     const resetPassword = (email) =>
         supabase.auth.resetPasswordForEmail(email, {
@@ -77,17 +108,26 @@ export function AuthProvider({ children }) {
 
     const signOut = () => supabase.auth.signOut();
 
+    const switchCompany = (companyId) => {
+        setImpersonatedCompanyId(companyId);
+        setOverrideCompanyId(companyId);
+        // We don't necessarily need to refetch the profile here if we only 
+        // want to change the context for hooks, but it's good for UI consistency
+    };
+
     const value = {
         session,
         user: session?.user ?? null,
         profile,
-        loading: session === undefined,
+        impersonatedCompanyId,
+        loading: session === undefined || profileLoading,
         signIn,
         signUp,
         signInWithMagicLink,
         resetPassword,
         updatePassword,
         signOut,
+        switchCompany,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

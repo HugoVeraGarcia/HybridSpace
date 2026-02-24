@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Mail, Lock, User, Zap } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react';
 
 export default function LoginPage() {
-    const { session, signIn, signUp, signInWithMagicLink, resetPassword } = useAuth();
-    const [mode, setMode] = useState('login');   // 'login' | 'register' | 'magic' | 'reset'
-    const [name, setName] = useState('');
+    const { session, signIn, signInWithMagicLink, resetPassword } = useAuth();
+    const [mode, setMode] = useState('login');   // 'login' | 'magic' | 'reset'
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPw, setShowPw] = useState(false);
@@ -37,15 +36,6 @@ export default function LoginPage() {
             setLoading(false);
             if (err) setError(err.message);
             else setSuccess('✉️ Revisa tu correo — te enviamos un enlace mágico de acceso.');
-            return;
-        }
-        // ... (rest of handleSubmit remains similar)
-        if (mode === 'register') {
-            if (!name.trim()) { setError('Ingresa tu nombre completo.'); setLoading(false); return; }
-            const { error: err } = await signUp(email, password, name);
-            setLoading(false);
-            if (err) setError(err.message);
-            else setSuccess('✅ Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión.');
             return;
         }
 
@@ -94,47 +84,25 @@ export default function LoginPage() {
                     backdropFilter: 'blur(20px)',
                     boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
                 }}>
-                    {/* Header for Reset Mode */}
+                    {/* Header for Reset/Magic Mode */}
                     {mode === 'reset' ? (
                         <div style={{ marginBottom: 28 }}>
                             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Recuperar contraseña</h2>
                             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Introduce tu email y te enviaremos un enlace para cambiar tu contraseña.</p>
                         </div>
+                    ) : mode === 'magic' ? (
+                        <div style={{ marginBottom: 28 }}>
+                            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Acceso con Enlace Mágico</h2>
+                            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Te enviaremos un enlace a tu correo para entrar sin contraseña.</p>
+                        </div>
                     ) : (
-                        /* Mode tabs */
-                        <div style={{
-                            display: 'flex', borderBottom: '1px solid var(--border)',
-                            marginBottom: 28, gap: 0
-                        }}>
-                            {[['login', 'Iniciar sesión'], ['register', 'Crear cuenta']].map(([v, l]) => (
-                                <button key={v}
-                                    onClick={() => { setMode(v); reset(); }}
-                                    style={{
-                                        flex: 1, background: 'none', border: 'none', padding: '10px 0',
-                                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                                        color: (mode === 'login' || mode === 'magic') && v === 'login' ? 'var(--accent)' : mode === v ? 'var(--accent)' : 'var(--text-muted)',
-                                        borderBottom: ((mode === 'login' || mode === 'magic') && v === 'login') || mode === v ? '2px solid var(--accent)' : '2px solid transparent',
-                                        marginBottom: -1, transition: 'all 0.2s'
-                                    }}>
-                                    {l}
-                                </button>
-                            ))}
+                        <div style={{ marginBottom: 28 }}>
+                            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Iniciar sesión</h2>
+                            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Ingresa tus credenciales para acceder a tu espacio.</p>
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-                        {/* Name (register only) */}
-                        {mode === 'register' && (
-                            <div className="input-group">
-                                <label>Nombre completo</label>
-                                <div className="input-wrapper">
-                                    <User size={16} className="input-icon" />
-                                    <input type="text" placeholder="Alex Rivera" value={name}
-                                        onChange={e => setName(e.target.value)} required autoFocus />
-                                </div>
-                            </div>
-                        )}
 
                         {/* Email */}
                         <div className="input-group">
@@ -143,26 +111,24 @@ export default function LoginPage() {
                                 <Mail size={16} className="input-icon" />
                                 <input type="email" placeholder="alex@empresa.com" value={email}
                                     onChange={e => setEmail(e.target.value)} required
-                                    autoFocus={mode !== 'register'} />
+                                    autoFocus />
                             </div>
                         </div>
 
-                        {/* Password (only for login/register) */}
-                        {(mode === 'login' || mode === 'register') && (
+                        {/* Password (only for login) */}
+                        {mode === 'login' && (
                             <div className="input-group">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                                     <label style={{ marginBottom: 0 }}>Contraseña</label>
-                                    {mode === 'login' && (
-                                        <button type="button" onClick={() => { setMode('reset'); reset(); }}
-                                            style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--accent)', cursor: 'pointer' }}>
-                                            ¿Olvidaste tu contraseña?
-                                        </button>
-                                    )}
+                                    <button type="button" onClick={() => { setMode('reset'); reset(); }}
+                                        style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--accent)', cursor: 'pointer' }}>
+                                        ¿Olvidaste tu contraseña?
+                                    </button>
                                 </div>
                                 <div className="input-wrapper">
                                     <Lock size={16} className="input-icon" />
                                     <input type={showPw ? 'text' : 'password'}
-                                        placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : '••••••••'}
+                                        placeholder="••••••••"
                                         value={password}
                                         onChange={e => setPassword(e.target.value)}
                                         required minLength={6} />
@@ -192,13 +158,12 @@ export default function LoginPage() {
                             disabled={loading}>
                             {loading ? 'Procesando…' :
                                 mode === 'login' ? 'Iniciar sesión' :
-                                    mode === 'register' ? 'Crear cuenta' :
-                                        mode === 'reset' ? 'Enviar instrucciones' :
-                                            '✉️ Enviar enlace mágico'}
+                                    mode === 'reset' ? 'Enviar instrucciones' :
+                                        '✉️ Enviar enlace mágico'}
                         </button>
                     </form>
 
-                    {/* Footer buttons / Magic link */}
+                    {/* Footer buttons / Magic link toggle */}
                     {mode === 'reset' || mode === 'magic' ? (
                         <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', marginTop: 16 }}
                             onClick={() => { setMode('login'); reset(); }}>
@@ -222,12 +187,23 @@ export default function LoginPage() {
                 <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, marginTop: 24 }}>
                     Al continuar, aceptas los términos de uso de HybridSpace.
                 </p>
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginTop: 12 }}>
-                    ¿Empresa nueva?{' '}
-                    <Link to="/register" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-                        Regístrate gratis
-                    </Link>
-                </p>
+                <div style={{
+                    textAlign: 'center', marginTop: 16, padding: '16px',
+                    background: 'rgba(255,255,255,0.02)', borderRadius: 12,
+                    border: '1px solid rgba(255,255,255,0.05)'
+                }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                        ¿No tienes una cuenta aún?
+                    </p>
+                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <Link to="/register" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                            Registrar una nueva empresa →
+                        </Link>
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+                            Los empleados deben usar el enlace de invitación enviado por su administrador.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

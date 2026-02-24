@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
+// Global override for superadmin impersonation
+let overrideCompanyId = null;
+
+export function setOverrideCompanyId(id) {
+    overrideCompanyId = id;
+}
+
 // Get current auth user ID at call time
 async function currentUserId() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -9,6 +16,8 @@ async function currentUserId() {
 
 // Helper to get current user's company_id
 async function currentCompanyId() {
+    if (overrideCompanyId) return overrideCompanyId;
+
     const uid = await currentUserId();
     if (!uid) return null;
     const { data } = await supabase.from('profiles').select('company_id').eq('id', uid).single();
@@ -439,31 +448,29 @@ export async function registerCompany(companyName, userName) {
 
 // ─── INVITATIONS ─────────────────────────────────────────────────────────────
 export async function createInvitation(email, role = 'employee') {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: { message: 'No autenticado' } };
+    const cid = await currentCompanyId();
+    if (!cid) return { data: null, error: { message: 'Sin empresa asociada' } };
 
-    // Get the admin's company_id
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id, companies(max_users)')
-        .eq('id', user.id)
+    // Get the max_users for this company (even if impersonated)
+    const { data: company } = await supabase
+        .from('companies')
+        .select('max_users')
+        .eq('id', cid)
         .single();
-
-    if (!profile?.company_id) return { data: null, error: { message: 'Sin empresa asociada' } };
 
     // Check user limit before creating invite
     const { count } = await supabase
         .from('profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('company_id', profile.company_id);
+        .eq('company_id', cid);
 
-    if (count >= (profile.companies?.max_users ?? 10)) {
+    if (count >= (company?.max_users ?? 10)) {
         return { data: null, error: { message: 'Límite de usuarios alcanzado. Actualiza tu plan.' } };
     }
 
     const { data, error } = await supabase
         .from('invitations')
-        .insert({ company_id: profile.company_id, email, role })
+        .insert({ company_id: cid, email, role })
         .select()
         .single();
     return { data, error };
@@ -479,18 +486,12 @@ export async function acceptInvite(token, name) {
 
 export function useCompanyUsers() {
     return useFetch(async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return { data: [], error: null };
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('company_id')
-            .eq('id', user.id)
-            .single();
-        if (!profile?.company_id) return { data: [], error: null };
+        const cid = await currentCompanyId();
+        if (!cid) return { data: [], error: null };
         return supabase
             .from('profiles')
             .select('id, name, email, role, active, companies(name, max_users)')
-            .eq('company_id', profile.company_id)
+            .eq('company_id', cid)
             .order('name');
     }, []);
 }
